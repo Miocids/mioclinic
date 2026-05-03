@@ -29,7 +29,6 @@ services:
       - app
     networks:
       - mioclinic-network
-      - npm_default # <-- Conectamos el contenedor web a la red de NPM
 
   db:
     image: mysql:8.0
@@ -75,8 +74,6 @@ services:
 networks:
   mioclinic-network:
     driver: bridge
-  npm_default: # <-- Declaramos la red de NPM como externa para que Docker no intente crearla
-    external: true
 
 volumes:
   mioclinic-mysql-data:
