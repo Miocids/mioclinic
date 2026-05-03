@@ -1,0 +1,80 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mioclinic-app
+    container_name: mioclinic-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - db
+      - redis
+    networks:
+      - mioclinic-network
+
+  web:
+    image: nginx:alpine
+    container_name: mioclinic-web
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - mioclinic-network
+
+  db:
+    image: mysql:8.0
+    container_name: mioclinic-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-mioclinic_filament}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - mioclinic-mysql-data:/var/lib/mysql
+    networks:
+      - mioclinic-network
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mioclinic-app
+    container_name: mioclinic-queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    entrypoint: ["worker-entrypoint.sh"]
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - app
+      - db
+      - redis
+    networks:
+      - mioclinic-network
+
+  redis:
+    image: redis:alpine
+    container_name: mioclinic-redis
+    restart: unless-stopped
+    volumes:
+      - mioclinic-redis-data:/data
+    networks:
+      - mioclinic-network
+
+networks:
+  mioclinic-network:
+    driver: bridge
+
+volumes:
+  mioclinic-mysql-data:
+  mioclinic-redis-data:
